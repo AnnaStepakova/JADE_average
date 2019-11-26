@@ -8,6 +8,7 @@ import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,21 +16,24 @@ import java.util.logging.Logger;
 public class Node extends Agent {
     private FSMBehaviour fsm;
 
-    static private Double alpha = 0.5;
+    static private Double alpha = 0.1;
     private Integer step = 0;
     private Double value;
 
     private Double acc = 0.0; // for sum accumulation
+    private ArrayList<Double> history = new ArrayList<>();
 
     // Following lists contain AIDs of corresponding links
     private ArrayList<AID> send_to;
     private ArrayList<AID> receive_from;
 
-    private static Logger LOGGER;
+    private static Logger LOGGER = Logger.getLogger(Node.class.getName());
+    private static DecimalFormat df5 = new DecimalFormat("#.#####");
+    private static boolean printHistory = false;
 
     @Override
     protected void setup() {
-        LOGGER = Logger.getLogger(this.getClass().getName());
+        LOGGER.setLevel(Level.INFO);
         LOGGER.info("Initializing " + getLocalName());
 
         Object[] args = getArguments();
@@ -39,14 +43,14 @@ public class Node extends Agent {
 
         fsm =  new FSMBehaviour(this);
 
-        fsm.registerFirstState(new SendBehaviour(this), "Send");
+        fsm.registerState(new SendBehaviour(this), "Send");
         fsm.registerState(new ParallelReceiver(this), "Receive");
-        fsm.registerState(new UpdateBehaviour(this), "Update");
+        fsm.registerFirstState(new UpdateBehaviour(this), "Update");
         fsm.registerLastState(new FinishBehaviour(this), "Finish");
 
-        fsm.registerDefaultTransition("Send", "Receive");
-        fsm.registerDefaultTransition("Receive", "Update");
-        fsm.registerDefaultTransition("Update", "Send");
+        fsm.registerDefaultTransition("Send", "Receive", new String[] { "Receive" });
+        fsm.registerDefaultTransition("Receive", "Update", new String[] { "Update" });
+        fsm.registerDefaultTransition("Update", "Send", new String[] { "Send" });
 
         fsm.registerTransition("Update", "Finish", 100);
 
@@ -55,18 +59,23 @@ public class Node extends Agent {
 
     private class SendBehaviour extends OneShotBehaviour {  //to send messages
 
-        public SendBehaviour(Node node) {
+        SendBehaviour(Node node) {
             setAgent(node);
         }
         @Override
         public void action() {
             ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-            String log = myAgent.getLocalName() + " is going to send message \'" + value + "\' to ";
+            StringBuilder log = new StringBuilder();
+            log.append(myAgent.getLocalName());
+            log.append(" is going to send message \'");
+            log.append(value);
+            log.append("\' to ");
             for (AID aid : send_to) {
-                log = log + aid.getLocalName();
+                log.append(aid.getLocalName());
+                log.append(", ");
                 msg.addReceiver(aid);
             }
-            LOGGER.info(log);
+            LOGGER.fine(log.toString());
             try {
                 msg.setContentObject(value);
             } catch (IOException e) {
@@ -87,14 +96,14 @@ public class Node extends Agent {
         public void onStart() {
             constructBehaviours();
             for (SequentialBehaviour b: bs) {
-                addSubBehaviour(b);
+                this.addSubBehaviour(b);
             }
         }
 
         @Override
         public int onEnd() {
             for (SequentialBehaviour b: bs) {
-                removeSubBehaviour(b);
+                this.removeSubBehaviour(b);
             }
             bs.clear();
             return fsm.getLastExitValue();
@@ -108,11 +117,14 @@ public class Node extends Agent {
                     public void handle(ACLMessage msg) {
                         try {
                             int p = msg.getPerformative();
+                            LOGGER.fine(myAgent.getLocalName() + " received " +
+                                    ACLMessage.getPerformative(msg.getPerformative()) +
+                                    " message from " + aid.getLocalName());
                             if (p == ACLMessage.INFORM) {
                                 Double y = (Double) msg.getContentObject();
-                                LOGGER.info("Receive " + y.toString() + " from " + aid.getLocalName());
+                                LOGGER.fine("Receive " + y.toString() + " from " + aid.getLocalName());
                                 acc += y - value;
-                                LOGGER.info("Acc update on " + getLocalName() + ": " + acc.toString());
+                                LOGGER.fine("Acc update on " + getLocalName() + ": " + acc.toString());
                             }
                         } catch (UnreadableException e) {
                             e.printStackTrace();
@@ -129,7 +141,7 @@ public class Node extends Agent {
     }
 
     private class UpdateBehaviour extends OneShotBehaviour {
-        public UpdateBehaviour(Node node) {
+        UpdateBehaviour(Node node) {
             setAgent(node);
         }
         @Override
@@ -138,7 +150,9 @@ public class Node extends Agent {
             acc = 0.0;
             step++;
 
-            LOGGER.info("Agent " + myAgent.getLocalName() + " value on step #" + step.toString() +
+            history.add(value);
+
+            LOGGER.fine("Agent " + myAgent.getLocalName() + " value on step #" + step.toString() +
                     " is " + value.toString());
         }
 
@@ -149,12 +163,32 @@ public class Node extends Agent {
     }
 
     private class FinishBehaviour extends OneShotBehaviour {
-        public FinishBehaviour(Node node) {
+        FinishBehaviour(Node node) {
             setAgent(node);
         }
         @Override
         public void action() {
-            LOGGER.info("Result for agent " + myAgent.getLocalName() + " is " + value.toString());
+            ACLMessage msg = new ACLMessage(ACLMessage.FAILURE);
+            for (AID aid: send_to) {
+                msg.addReceiver(aid);
+            }
+            send(msg);
+
+            if (printHistory) {
+                StringBuilder log = new StringBuilder();
+                log.append("History for ");
+                log.append(myAgent.getLocalName());
+                log.append(" is [");
+                for (Double v: history) {
+                    log.append(df5.format(v));
+                    log.append(",");
+                }
+                log.append("]");
+                LOGGER.info(log.toString());
+            } else {
+                LOGGER.info("Result for " + myAgent.getLocalName() + " is " + df5.format(value));
+            }
+
         }
     }
 }

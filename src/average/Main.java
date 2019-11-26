@@ -6,15 +6,12 @@ import jade.content.onto.Ontology;
 import jade.content.onto.basic.Action;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.ReceiverBehaviour;
-import jade.core.behaviours.SequentialBehaviour;
 import jade.domain.JADEAgentManagement.JADEManagementOntology;
 import jade.domain.JADEAgentManagement.ShutdownPlatform;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -25,12 +22,17 @@ public class Main extends Agent {
     private AgentContainer container;
     private ArrayList<AgentController> controllers = new ArrayList<>();  //to start agents
 
-    private static DecimalFormat df5 = new DecimalFormat("#.#####");
     static private Logger LOGGER = Logger.getLogger(Main.class.getName());
 
     @Override
     protected void setup() {
         container = getContainerController();  //to create agents
+
+//        // Graph for debugging
+//        createNode(1, 20.0, new ArrayList<>(Arrays.asList(2)), new ArrayList<>(Arrays.asList(2)));
+//        createNode(2, 30.0, new ArrayList<>(Arrays.asList(1)), new ArrayList<>(Arrays.asList(1)));
+//        createEdge(1, 2, 0.0, 0);
+//        createEdge(2, 1, 0.0, 0);
 
         createNode(1, 13.0, new ArrayList<>(Arrays.asList(2)), new ArrayList<>(Arrays.asList(5)));
         createNode(2, 21.0, new ArrayList<>(Arrays.asList(3, 4, 5)), new ArrayList<>(Arrays.asList(1)));
@@ -78,7 +80,7 @@ public class Main extends Agent {
         return "edge" + from.toString() + "-" + to.toString();
     }
 
-    public void createNode(Integer num, Double value, ArrayList<Integer> send_to, ArrayList<Integer> receive_from) {
+    private void createNode(Integer num, Double value, ArrayList<Integer> send_to, ArrayList<Integer> receive_from) {
         String agentName = nodeName(num);
 
         ArrayList<AID> sendLinks = new ArrayList<>();
@@ -97,7 +99,7 @@ public class Main extends Agent {
         }
     }
 
-    public void createEdge(Integer from, Integer to, Double failProbability, Integer delay) {
+    private void createEdge(Integer from, Integer to, Double failProbability, Integer delay) {
         String agentName = edgeName(from, to);
         try {
             controllers.add(container.createNewAgent(agentName, "average.Link", new Object[]{
