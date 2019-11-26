@@ -22,7 +22,6 @@ import java.util.logging.Logger;
 
 //we agree that only one agent of this class with name 'main' should exist
 public class Main extends Agent {
-    private long startTime;
     private AgentContainer container;
     private ArrayList<AgentController> controllers = new ArrayList<>();  //to start agents
 
@@ -31,7 +30,6 @@ public class Main extends Agent {
 
     @Override
     protected void setup() {
-        startTime = System.currentTimeMillis();
         container = getContainerController();  //to create agents
 
         createNode(1, 13.0, new ArrayList<>(Arrays.asList(2)), new ArrayList<>(Arrays.asList(5)));

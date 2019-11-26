@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Logger;
 
 public class Link extends Agent {
     FSMBehaviour fsm;
@@ -26,10 +27,13 @@ public class Link extends Agent {
 
     Queue<Optional<Double>> queue = new LinkedList<>();
 
-
+    private static Logger LOGGER;
 
     @Override
     protected void setup() {
+        LOGGER = Logger.getLogger(this.getClass().getName());
+        LOGGER.info("Initializing " + getLocalName());
+
         Object[] args = getArguments();
         from = (AID) args[0];
         to = (AID) args[1];
@@ -90,5 +94,7 @@ public class Link extends Agent {
 
         fsm.registerFirstState(seq, "ReceiveAndForward");
         fsm.registerDefaultTransition("ReceiveAndForward", "ReceiveAndForward");
+
+        addBehaviour(fsm);
     }
 }
