@@ -33,21 +33,21 @@ public class Main extends Agent {
     protected void setup() {
         startTime = System.currentTimeMillis();
         container = getContainerController();  //to create agents
-        //we create binary tree
-        //create agents...
-        //root - 1st level
-        createAgent(21, new ArrayList<AID>(),
-                new ArrayList<AID>(Arrays.asList(new AID("agent13", AID.ISLOCALNAME), new AID("agent82", AID.ISLOCALNAME))));
-        //2nd level
-        createAgent(13, new ArrayList<AID>(Arrays.asList(new AID("agent21", AID.ISLOCALNAME))),
-                new ArrayList<>(Arrays.asList(new AID("agent35", AID.ISLOCALNAME), new AID("agent8", AID.ISLOCALNAME))));
-        createAgent(82, new ArrayList<AID>(Arrays.asList(new AID("agent21", AID.ISLOCALNAME))),
-                new ArrayList<>(Arrays.asList(new AID("agent-2", AID.ISLOCALNAME), new AID("agent17", AID.ISLOCALNAME))));
-        //3rd level
-        createAgent(35, new ArrayList<AID>(Arrays.asList(new AID("agent13", AID.ISLOCALNAME))), new ArrayList<AID>());
-        createAgent(8, new ArrayList<AID>(Arrays.asList(new AID("agent13", AID.ISLOCALNAME))), new ArrayList<AID>());
-        createAgent(-2, new ArrayList<AID>(Arrays.asList(new AID("agent82", AID.ISLOCALNAME))), new ArrayList<AID>());
-        createAgent(17, new ArrayList<AID>(Arrays.asList(new AID("agent82", AID.ISLOCALNAME))), new ArrayList<AID>());
+
+        createNode(1, 13.0, new ArrayList<>(Arrays.asList(2)), new ArrayList<>(Arrays.asList(5)));
+        createNode(2, 21.0, new ArrayList<>(Arrays.asList(3, 4, 5)), new ArrayList<>(Arrays.asList(1)));
+        createNode(3, 35.0, new ArrayList<>(Arrays.asList(4)), new ArrayList<>(Arrays.asList(2)));
+        createNode(4, -5.0, new ArrayList<>(Arrays.asList(5)), new ArrayList<>(Arrays.asList(2, 3)));
+        createNode(5, 82.0, new ArrayList<>(Arrays.asList(1)), new ArrayList<>(Arrays.asList(2, 4)));
+
+        createEdge(1, 2, 0.0, 1);
+        createEdge(2, 3, 0.0, 0);
+        createEdge(2, 4, 0.25, 0);
+        createEdge(2, 5, 0.25, 0);
+        createEdge(3, 4, 0.0, 1);
+        createEdge(4, 5, 0.0, 0);
+        createEdge(5, 1, 0.0, 0);
+
         //start agents
         try {
             for (AgentController c: controllers)
@@ -55,25 +55,6 @@ public class Main extends Agent {
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, e.getMessage(), e);
         }
-        //set behaviour of a main agent (server)
-        SequentialBehaviour seq = new SequentialBehaviour(this);
-        ReceiverBehaviour receiver = new ReceiverBehaviour(this, -1, null);
-        HandlerBehaviour handler = new HandlerBehaviour(this, receiver) {
-            @Override
-            public void handle(ACLMessage msg) {
-                try {
-                    Double result = (Double) msg.getContentObject();
-                    System.out.println("Result is " + df5.format(result));
-                    LOGGER.info("Elapsed time is " + Long.toString(System.currentTimeMillis() - startTime) + "ms");
-                    shutDownPlatform();
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, e.getMessage(), e);
-                }
-            }
-        };
-        seq.addSubBehaviour(receiver);
-        seq.addSubBehaviour(handler);
-        addBehaviour(seq);
     }
     //I know this looks complicated, this part is from Internet)
     private void shutDownPlatform() {
@@ -92,10 +73,40 @@ public class Main extends Agent {
         catch (Exception e) {}
     }
 
-    public void createAgent(Integer number, ArrayList<AID> send_to, ArrayList<AID> receive_from){
-        String agentName = "agent" + number;
+    private String nodeName(Integer num) {
+        return "node" + num.toString();
+    }
+    private String edgeName(Integer from, Integer to) {
+        return "edge" + from.toString() + "-" + to.toString();
+    }
+
+    public void createNode(Integer num, Double value, ArrayList<Integer> send_to, ArrayList<Integer> receive_from) {
+        String agentName = nodeName(num);
+
+        ArrayList<AID> sendLinks = new ArrayList<>();
+        ArrayList<AID> receiveLinks = new ArrayList<>();
+
+        for (Integer j: send_to) {
+            sendLinks.add(new AID(edgeName(num, j), AID.ISLOCALNAME));
+        }
+        for (Integer j: receive_from) {
+            receiveLinks.add(new AID(edgeName(j, num), AID.ISLOCALNAME));
+        }
         try {
-            controllers.add(container.createNewAgent(agentName, "average.MyAgent", new Object[]{number, send_to, receive_from}));
+            controllers.add(container.createNewAgent(agentName, "average.Node", new Object[]{value, sendLinks, receiveLinks}));
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, e.getMessage(), e);
+        }
+    }
+
+    public void createEdge(Integer from, Integer to, Double failProbability, Integer delay) {
+        String agentName = edgeName(from, to);
+        try {
+            controllers.add(container.createNewAgent(agentName, "average.Link", new Object[]{
+                    new AID(nodeName(from), AID.ISLOCALNAME),
+                    new AID(nodeName(to), AID.ISLOCALNAME),
+                    failProbability, delay
+            }));
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, e.getMessage(), e);
         }
