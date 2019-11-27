@@ -27,6 +27,8 @@ public class Link extends Agent {
     private Double failProbability;
     private Integer delay; // Let it be constant
 
+    private boolean enable_noise = true;
+
     private boolean alive = true;
 
     private Queue<Optional<Double>> queue = new LinkedList<>();
@@ -123,8 +125,15 @@ public class Link extends Agent {
                         if (random < failProbability) {
                             forward.setPerformative(ACLMessage.FAILURE);
                         } else {
-                            //double noise = ThreadLocalRandom.current().nextDouble(-1, 1);
-                            //value += noise;
+                            if (enable_noise) {
+                                // Simulate noise with suppression using law of large numbers
+                                double acc = 0.0;
+                                for (int i = 0; i < 100; ++i) {
+                                    double noise = ThreadLocalRandom.current().nextDouble(-1, 1);
+                                    acc += value + noise;
+                                }
+                                value = acc / 100;
+                            }
                             try {
                                 forward.setContentObject(value);
                             } catch (IOException e) {
