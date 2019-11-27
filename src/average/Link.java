@@ -25,7 +25,7 @@ public class Link extends Agent {
     private AID to;
 
     private Double failProbability;
-    private Integer delay; // Пусть пока будет постоянной
+    private Integer delay; // Let it be constant
 
     private boolean alive = true;
 
@@ -35,7 +35,7 @@ public class Link extends Agent {
 
     @Override
     protected void setup() {
-        LOGGER.setLevel(Level.SEVERE);
+        LOGGER.setLevel(Level.INFO);
         LOGGER.fine("Initializing " + getLocalName());
 
         Object[] args = getArguments();

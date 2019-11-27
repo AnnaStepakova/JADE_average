@@ -150,7 +150,9 @@ public class Node extends Agent {
             acc = 0.0;
             step++;
 
-            history.add(value);
+            if (printHistory) {
+                history.add(value);
+            }
 
             LOGGER.fine("Agent " + myAgent.getLocalName() + " value on step #" + step.toString() +
                     " is " + value.toString());

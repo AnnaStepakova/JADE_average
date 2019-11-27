@@ -40,6 +40,14 @@ public class Main extends Agent {
         createNode(4, -5.0, new ArrayList<>(Arrays.asList(5)), new ArrayList<>(Arrays.asList(2, 3)));
         createNode(5, 82.0, new ArrayList<>(Arrays.asList(1)), new ArrayList<>(Arrays.asList(2, 4)));
 
+//        createEdge(1, 2, 0.0, 0);
+//        createEdge(2, 3, 0.0, 0);
+//        createEdge(2, 4, 0.0, 0);
+//        createEdge(2, 5, 0.0, 0);
+//        createEdge(3, 4, 0.0, 0);
+//        createEdge(4, 5, 0.0, 0);
+//        createEdge(5, 1, 0.0, 0);
+
         createEdge(1, 2, 0.0, 1);
         createEdge(2, 3, 0.0, 0);
         createEdge(2, 4, 0.25, 0);
